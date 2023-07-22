@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+
+<head>
+  <!-- Metadata -->
+  <meta charset="utf-8" />
+  <meta name="author" content="Chandra" />
+  <meta name="description" content="Password protect links using AES in the browser." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+
+  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+
+  <title>Link Lock - Password-protect links</title>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css" type="text/css" />
+
+  <!-- Scripts -->
+  <script type="text/javascript" src="b64.js"></script>
+  <script type="text/javascript" src="api.js"></script>
+  <script type="text/javascript" src="index.js"> </script>
+</head>
+
+<body onload="main()">
+  <!-- Explanation for those who do not have JavaScript enabled -->
+  <noscript>
+  <div class="red-border">
+    <p>Jika Anda melihat ini, berarti JavaScript Anda dinonaktifkan. Harap aktifkan JavaScript untuk mengakses tautan terkunci.</p>
+
+    <p>Aplikasi ini sepenuhnya diprogram dalam JavaScript. Ini dilakukan dengan sengaja, agar semua enkripsi dan dekripsi terjadi di sisi klien. Ini berarti kode berjalan sebagai aplikasi terdistribusi, hanya mengandalkan Halaman GitHub untuk infrastruktur. Ini juga berarti bahwa tidak ada data tentang tautan terkunci yang pernah disimpan di server. Kode dirancang agar dapat diaudit sehingga pengguna dapat menyelidiki apa yang terjadi di balik layar.</p>
+    <p>Jika Anda masih ingin menjalankan aplikasi, saya anjurkan Anda mengkloning <a href="https://github.com/jstrieb/link-lock">kode sumber di GitHub</a>. Dengan demikian, Anda dapat menonaktifkan JavaScript hanya untuk file tepercaya di mesin lokal Anda.</p>
+  </div>
+  </noscript>
+
+  <div class="form" style="display: none">
+    <p>Tolong Masukan Password Bro</p>
+    <p id="hint"></p>
+
+    <hr />
+
+    <label for="password">password</label>
+    <input type="password" id="password" autofocus />
+    <button id="unlockbutton">Buka Link</button>
+  </div>
+
+  <!-- Display errors in a big red box -->
+  <div class="error red-border" style="display: none">
+    <p id="errortext">Error bro</p>
+    <button onclick="main()">Coba Lagi Bro</button>
+    <a href="https://jstrieb.github.io/link-lock"><button>Buka Link</button></a>
+    <a href="https://jstrieb.github.io/link-lock/decrypt/" id="no-redirect" target="_blank"><button>Decrypt without redirect</button></a>
+    <a href="https://jstrieb.github.io/link-lock/hidden/" id="hidden" target="_blank"><button>Create hidden bookmark</button></a>
+  </div>
+</body>
+
+</html>
