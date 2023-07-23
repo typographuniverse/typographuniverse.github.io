@@ -1,54 +1,118 @@
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+function error(text) {
+  document.querySelector(".form").style.display = "none";
+  document.querySelector(".error").style.display = "inherit";
+  document.querySelector("#errortext").innerText = `Error: ${text}`;
+}
 
-<head>
-  <!-- Metadata -->
-  <meta charset="utf-8" />
-  <meta name="author" content="Chandra" />
-  <meta name="description" content="Password protect links using AES in the browser." />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+// Run when the <body> loads
+function main() {
+  if (window.location.hash) {
+    document.querySelector(".form").style.display = "inherit";
+    document.querySelector("#password").value = "";
+    document.querySelector("#password").focus();
+    document.querySelector(".error").style.display = "none";
+    document.querySelector("#errortext").innerText = "";
 
-  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    // Fail if the b64 library or API was not loaded
+    if (!("b64" in window)) {
+      error("Base64 library not loaded.");
+      return;
+    }
+    if (!("apiVersions" in window)) {
+      error("API library not loaded.");
+      return;
+    }
 
-  <title>Link Lock - Password-protect links</title>
+    // Try to get page data from the URL if possible
+    const hash = window.location.hash.slice(1);
+    let params;
+    try {
+      params = JSON.parse(b64.decode(hash));
+    } catch {
+      error("The link appears corrupted.");
+      return;
+    }
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="style.css" type="text/css" />
+    // Check that all required parameters encoded in the URL are present
+    if (!("v" in params && "e" in params)) {
+      error("The link appears corrupted. The encoded URL is missing necessary parameters.");
+      return;
+    }
 
-  <!-- Scripts -->
-  <script type="text/javascript" src="b64.js"></script>
-  <script type="text/javascript" src="api.js"></script>
-  <script type="text/javascript" src="index.js"> </script>
-</head>
+    // Check that the version in the parameters is valid
+    if (!(params["v"] in apiVersions)) {
+      error("Unsupported API version. The link may be corrupted.");
+      return;
+    }
 
-<body onload="main()">
-  <!-- Explanation for those who do not have JavaScript enabled -->
-  <noscript>
-  <div class="red-border">
-    <p>Jika Anda melihat ini, berarti JavaScript Anda dinonaktifkan. Harap aktifkan JavaScript untuk mengakses tautan terkunci.</p>
+    const api = apiVersions[params["v"]];
 
-    <p>Aplikasi ini sepenuhnya diprogram dalam JavaScript. Ini dilakukan dengan sengaja, agar semua enkripsi dan dekripsi terjadi di sisi klien. Ini berarti kode berjalan sebagai aplikasi terdistribusi, hanya mengandalkan Halaman GitHub untuk infrastruktur. Ini juga berarti bahwa tidak ada data tentang tautan terkunci yang pernah disimpan di server. Kode dirancang agar dapat diaudit sehingga pengguna dapat menyelidiki apa yang terjadi di balik layar.</p>
-    <p>Jika Anda masih ingin menjalankan aplikasi, saya anjurkan Anda mengkloning <a href="https://typographuniverse.github.io//link-lock">kode sumber di GitHub</a>. Dengan demikian, Anda dapat menonaktifkan JavaScript hanya untuk file tepercaya di mesin lokal Anda.</p>
-  </div>
-  </noscript>
+    // Get values for decryption
+    const encrypted = b64.base64ToBinary(params["e"]);
+    const salt = "s" in params ? b64.base64ToBinary(params["s"]) : null;
+    const iv = "i" in params ? b64.base64ToBinary(params["i"]) : null;
 
-  <div class="form" style="display: none">
-    <p>Tolong Masukan Password Bro</p>
-    <p id="hint">Petunjuk</p>
+    let hint, password;
+    if ("h" in params) {
+      hint = params["h"];
+      document.querySelector("#hint").innerText = "Petunjuk Bang : " + hint;
+    }
 
-    <hr />
+    const unlockButton = document.querySelector("#unlockbutton");
+    const passwordPrompt = document.querySelector("#password");
+    passwordPrompt.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        unlockButton.click();
+      }
+    });
+    unlockButton.addEventListener("click", async () => {
+      password = passwordPrompt.value;
 
-    <label for="password">password</label>
-    <input type="password" id="password" autofocus />
-    <button id="unlockbutton">Buka Link</button>
-  </div>
+      // Decrypt and redirect if possible
+      let url;
+      try {
+        url = await api.decrypt(encrypted, password, salt, iv);
+      } catch {
+        // Password is incorrect.
+        error("Ciahahahaha penyusuppp, Pasword Salah..!!");
 
-  <!-- Display errors in a big red box -->
-  <div class="error red-border" style="display: none">
-    <p id="errortext">Error bro</p>
-    <button onclick="main()">Coba Lagi Bro</button>
-    <a href="https://typographuniverse.github.io//link-lock"><button>Buka Link</button></a>
-        </div>
-</body>
+        // Set the "decrypt without redirect" URL appropriately
+        document.querySelector("#no-redirect").href =
+          `https://typographuniverse.github.io/link-lock/decrypt/#${hash}`;
 
-</html>
+        // Set the "create hidden bookmark" URL appropriately
+        document.querySelector("#hidden").href =
+         `https://typographuniverse.github.io/link-lock/hidden/#${hash}`;
+        return;
+      }
+
+      try {
+        // Extra check to make sure the URL is valid. Probably shouldn't fail.
+        let urlObj = new URL(url);
+
+        // Prevent XSS by making sure only HTTP URLs are used. Also allow magnet
+        // links for password-protected torrents.
+        if (!(urlObj.protocol == "http:"
+              || urlObj.protocol == "https:"
+              || urlObj.protocol == "magnet:")) {
+          error(`The link uses a non-hypertext protocol, which is not allowed. `
+              + `The URL begins with "${urlObj.protocol}" and may be malicious.`);
+          return;
+        }
+
+        // IMPORTANT NOTE: must use window.location.href instead of the (in my
+        // opinion more proper) window.location.replace. If you use replace, it
+        // causes Chrome to change the icon of a bookmarked link to update it to
+        // the unlocked destination. This is dangerous information leakage.
+        window.location.href = url;
+      } catch {
+        error("A corrupted URL was encrypted. Cannot redirect.");
+        console.log(url);
+        return;
+      }
+    });
+  } else {
+    // Otherwise redirect to the creator
+    window.location.replace("./create");
+  }
+}
