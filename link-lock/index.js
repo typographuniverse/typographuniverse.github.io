@@ -55,7 +55,7 @@ function main() {
     let hint, password;
     if ("h" in params) {
       hint = params["h"];
-      document.querySelector("#hint").innerText = "Hint: " + hint;
+      document.querySelector("#hint").innerText = "Petunjuk Bang : " + hint;
     }
 
     const unlockButton = document.querySelector("#unlockbutton");
@@ -74,15 +74,15 @@ function main() {
         url = await api.decrypt(encrypted, password, salt, iv);
       } catch {
         // Password is incorrect.
-        error("Password is incorrect.");
+        error("Ciahahahaha penyusuppp, Pasword Salah..!!");
 
         // Set the "decrypt without redirect" URL appropriately
-        document.querySelector("#no-redirect").href =
-          `https://jstrieb.github.io/link-lock/decrypt/#${hash}`;
+        //document.querySelector("#no-redirect").href =
+          //`https://jstrieb.github.io/link-lock/decrypt/#${hash}`;
 
         // Set the "create hidden bookmark" URL appropriately
-        document.querySelector("#hidden").href =
-          `https://jstrieb.github.io/link-lock/hidden/#${hash}`;
+        //document.querySelector("#hidden").href =
+        //  `https://jstrieb.github.io/link-lock/hidden/#${hash}`;
         return;
       }
 
